@@ -1,0 +1,33 @@
+# NAS stack for Dockhand / Portainer. Uses the image GitHub Actions builds on every push to main, so nothing
+# is built on the NAS and the stack works wherever the manager keeps its copy of this file.
+#
+# Set VAULT_ARCHIVE (stack environment variable, not in this file) to the dataset holding
+# "01. DRAWERS", "02. SUSTAINERS", "03. MODIFICATIONS" and the PDF manuals. Open http://<nas>:8765.
+# First start measures all 733 STLs once (minutes) into the vault-cache volume, extracts the help pages
+# from your PDFs and fetches the render sheets from ussadesign.com. Exports land in vault-output.
+#
+# Updating: `pull_policy: always` pulls the newest image on every (re)deploy; a scheduled sync or a webhook
+# call after a push redeploys. deploy/update-nas.ps1 waits for the image build before calling the webhook.
+services:
+  vault-configurator:
+    image: ghcr.io/marcelfarres/vault-configurator:latest
+    pull_policy: always
+    container_name: vault-configurator
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    environment:
+      VAULT_ARCHIVE: /archive
+      HOST: 0.0.0.0
+      PORT: "8765"
+    volumes:
+      # set VAULT_ARCHIVE in the stack manager's environment variables (kept out of the repo on purpose)
+      - ${VAULT_ARCHIVE:?set VAULT_ARCHIVE to the NAS path of your VAULT archive}:/archive:ro
+      - vault-cache:/app/cache
+      # help pages and render sheets made at first start: kept, so redeploys don't fetch them again
+      - vault-pictures:/app/assets
+      - vault-output:/app/output
+volumes:
+  vault-cache:
+  vault-pictures:
+  vault-output:

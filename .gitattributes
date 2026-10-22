@@ -1,0 +1,6 @@
+# the Mac and Linux starters break with Windows line endings
+*.sh text eol=lf
+*.command text eol=lf
+# and cmd can misread labels (goto) in a .bat without them
+*.bat text eol=crlf
+*.cmd text eol=crlf

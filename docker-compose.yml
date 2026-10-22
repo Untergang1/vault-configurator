@@ -1,0 +1,23 @@
+services:
+  vault-configurator:
+    image: ghcr.io/marcelfarres/vault-configurator:latest
+    build: .
+    container_name: vault-configurator
+    ports:
+      - "8765:8765"
+    environment:
+      - VAULT_ARCHIVE=/archive
+      # optional: slicer preset folders mounted below make the "process preset" features work
+      - APPDATA=/slicers
+    volumes:
+      # your own copy of the VAULT archive (the folder that holds "01. DRAWERS", "02. SUSTAINERS", "03. MODIFICATIONS" and the PDFs)
+      - ${VAULT_ARCHIVE:-./archive}:/archive:ro
+      - vault-cache:/app/cache
+      - vault-pictures:/app/assets
+      - ./output:/app/output
+      # optional, Windows example: C:/Users/you/AppData/Roaming -> gives the tool your Bambu Studio / Orca / Anycubic presets
+      # - C:/Users/you/AppData/Roaming:/slicers:ro
+    restart: unless-stopped
+volumes:
+  vault-cache:
+  vault-pictures:

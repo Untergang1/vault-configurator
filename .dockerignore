@@ -1,0 +1,12 @@
+# generated at start-up from the owner's archive / the designer's site: never baked into the image
+assets/
+cache/
+output/
+__pycache__/
+*.pyc
+static/
+gen_static_data.py
+docs/
+deploy/
+scripts/
+.github/

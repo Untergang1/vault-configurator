@@ -1,0 +1,8 @@
+# pictures generated at first start from the owner's archive and ussadesign.com: never committed
+assets/
+# the starters remember where this user's archive is: local, never committed
+archive-path.txt
+cache/
+output/
+__pycache__/
+*.pyc

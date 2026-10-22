@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VAULT configurator</title>
+<meta name="description" content="A local web tool for owners of the USSA Design VAULT archive: compose a stack, get the bill of materials, export print-ready multi-plate 3MF projects per printer.">
+<style>
+:root{--bg:#141516;--panel:#1d1f21;--line:#33373a;--text:#e8e6e1;--muted:#9a9a93;--accent:#e0a96d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,Segoe UI,Roboto,sans-serif}
+main{max-width:900px;margin:0 auto;padding:40px 20px 80px}
+h1{font-size:40px;letter-spacing:.16em;margin:0}
+.sub{color:var(--muted);font-size:18px;margin:6px 0 30px}
+h2{color:var(--accent);font-size:14px;letter-spacing:.14em;text-transform:uppercase;margin:40px 0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.card b{display:block;margin-bottom:6px}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;font-size:14px}
+a{color:var(--accent)}
+.warn{border-color:var(--accent)}
+ol li,ul li{margin:4px 0}
+footer{margin-top:60px;color:var(--muted);font-size:14px}
+img.hero{width:100%;border-radius:10px;border:1px solid var(--line);margin:18px 0 6px}
+.shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.shots figure{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.shots img{width:100%;display:block}
+.shots figcaption{padding:8px 12px;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+<h1>VAULT</h1>
+<p class="sub">configurator · stack composer, bill of materials and print-ready 3MF plates for the USSA Design VAULT modular storage system</p>
+
+<p>You bought the <a href="https://www.ussadesign.com/pages/vault">VAULT</a> archive from USSA Design and want to print a whole stack, not one file at a time. This tool runs on your own computer, reads <em>your</em> copy of the archive, and turns a stack you compose into one 3MF project per printer with every plate packed, every plate a single colour, and the slicer presets you tuned already applied.</p>
+
+<div class="card warn"><b>You need the archive.</b> The tool ships no models, manual pages or render sheets. It only works with the folder you bought (<code>01. DRAWERS</code>, <code>02. SUSTAINERS</code>, <code>03. MODIFICATIONS</code> and the PDF manuals) and never copies it anywhere.</div>
+
+<img class="hero" src="media/stack.jpg" alt="The Stack tab: layers on the left, the composed stack drawn to scale on the right">
+
+<h2>Why</h2>
+<p>The archive is 733 STL files spread over family folders and four PDF manuals. One cart needs the right module, box, facade, runner, key, latch, hinge and handle files from several of those folders, counted and set up one by one. The configurator does it from the stack you compose:</p>
+<div class="grid">
+<div class="card"><b>See it before you print</b>A to-scale front and back view of <em>your</em> stack from the designer's renders. The archive alone has no way to see how the pieces from different folders come together.</div>
+<div class="card"><b>Every part, from every folder</b>The right file for each part of your exact layout, size and depth, including two-bay layers that mix an L² body with S boxes and facades. Checked on 18,620 stack combinations.</div>
+<div class="card"><b>Shared parts joined</b>Runners, keys, latches, springs and other parts common to several modules are counted once across the whole stack and printed together.</div>
+<div class="card"><b>Material for the whole stack</b>Filament per colour and print time before printing anything. The demo cart: 120 pieces, about 7.2 kg, 4.3 kg of it in the main colour.</div>
+<div class="card"><b>No per-file setup</b>Every 3MF opens with the printer, the process preset and your filaments and colours already in place.</div>
+<div class="card"><b>Ready-to-print plates</b>One colour per plate, packed densely per printer, oversize parts across the diagonal, and every piece read back and checked on its plate.</div>
+</div>
+
+<h2>What it does</h2>
+<div class="grid">
+<div class="card"><b>Compose the stack</b>Layers of drawers or sustainers (S, M, L, XL, two-bay layers), facade splits, interiors, locks, geared rails, roofs and every modification from the manuals, with the same rules as the designer's own composer. Import the site's "Your build" PDF or saved JSON.</div>
+<div class="card"><b>See what you build</b>A to-scale front view from the designer's render sheets plus a back view for backbone, pegboards and wall mounts. Click any option for an explanation with the manual page and pictures of the real parts; click a part to spin it in 3D.</div>
+<div class="card"><b>Count everything</b>Every printed piece with its weight, time, size and which printer fits it, plus the bolt, rod and bearing list. Colour roles from the designer's renders (body, drawer inside, knobs, accent, TPU), changeable per stack, module, group or part.</div>
+<div class="card"><b>Export to print</b>One 3MF project per printer (Bambu Studio, OrcaSlicer, Anycubic Slicer Next): named plates, one named object per piece, printer, process preset and filaments with your colours. Single-colour plates, dense MaxRects packing, oversize parts across the diagonal, support braces packed against their module.</div>
+<div class="card"><b>Two printers, one workflow</b>Balance print time between a big multi-material printer and a smaller bed-slinger, keep tall parts off the latter, and tune a process preset per part group with test plates.</div>
+<div class="card"><b>Spoolman</b>Pick the filament and colour per slot from the spools you actually own.</div>
+</div>
+
+<h2>In pictures</h2>
+<div class="shots">
+<figure><img src="media/help.jpg" alt="Help box with the manual page and the real parts"><figcaption>Click an option: what each choice gives you, the manual page, the real parts in your size.</figcaption></figure>
+<figure><img src="media/viewer.jpg" alt="A module in the 3D viewer"><figcaption>Click any part picture to inspect it in 3D.</figcaption></figure>
+<figure><img src="media/parts.jpg" alt="Parts and hardware table"><figcaption>Every piece, pictured in its colour, with weight, time, size and fit.</figcaption></figure>
+<figure><img src="media/colours.jpg" alt="Colour roles and filaments"><figcaption>Colour slots, Spoolman spools, and what prints in which colour.</figcaption></figure>
+<figure><img src="media/export.jpg" alt="Planned plates per printer"><figcaption>Plates per printer, every plate one colour, nothing left out unaccounted.</figcaption></figure>
+<figure><img src="media/slicer-bambu-studio.jpg" alt="The export open in Bambu Studio"><figcaption>The H2C project in Bambu Studio: 14 plates, named pieces, filaments and presets set.</figcaption></figure>
+<figure><img src="media/slicer-anycubic.jpg" alt="The export open in Anycubic Slicer Next"><figcaption>The Kobra X project in Anycubic Slicer Next.</figcaption></figure>
+<figure><img src="media/slicer-orca.jpg" alt="The export open in OrcaSlicer"><figcaption>The same file in OrcaSlicer.</figcaption></figure>
+</div>
+
+<h2>Run it</h2>
+<p><b>One click, on your own computer</b> (no server, no Python install): <a href="https://github.com/marcelfarres/vault-configurator/archive/refs/heads/main.zip">download the ZIP</a>, unpack it and double-click <code>Start VAULT (Windows).bat</code>, <code>Start VAULT (Mac).command</code> (the first time: right-click, Open) or <code>Start VAULT (Linux).sh</code>. The first start offers to install <a href="https://docs.astral.sh/uv/">uv</a>, which fetches Python and the libraries into your user folder, then asks once for your archive folder. Your browser opens at http://localhost:8765. Delete <code>archive-path.txt</code> to choose another folder. If Windows warns about an unknown publisher, choose More info, then Run anyway.</p>
+<p><b>Docker</b> (any machine, NAS included): put your archive folder somewhere, then</p>
+<pre>git clone https://github.com/marcelfarres/vault-configurator
+cd vault-configurator
+VAULT_ARCHIVE=/path/to/your/VAULT docker compose up -d
+# open http://localhost:8765</pre>
+<p><b>NAS with a stack manager</b> (Dockhand, Portainer): paste <a href="https://github.com/marcelfarres/vault-configurator/blob/main/deploy/compose.yaml">deploy/compose.yaml</a>, point <code>VAULT_ARCHIVE</code> at the dataset holding your archive, deploy. The image <code>ghcr.io/marcelfarres/vault-configurator:latest</code> is rebuilt on every change and <code>pull_policy: always</code> makes each redeploy pick it up, so a scheduled redeploy keeps the NAS current.</p>
+<p><b>Plain Python</b> (3.11+ with numpy, pypdf and pillow):</p>
+<pre>VAULT_ARCHIVE=/path/to/your/VAULT python -X utf8 server.py</pre>
+<p>Running it on the machine that has your slicers installed lets it read your Bambu Studio, OrcaSlicer and Anycubic Slicer Next presets; in Docker, mount the slicers' config folder to get the same.</p>
+
+<h2>How the files are respected</h2>
+<ul>
+<li>The archive stays where it is and is read directly; nothing is uploaded or embedded.</li>
+<li>Help pictures are extracted from the manual PDFs in your own archive at first start; render sheets are fetched from ussadesign.com.</li>
+<li>Exports contain only the parts you asked for, laid out for your printers, and live in your output folder.</li>
+</ul>
+
+<h2>Status</h2>
+<p>Verified with Bambu Studio 2.8, OrcaSlicer and Anycubic Slicer Next on a Bambu Lab H2C and an Anycubic Kobra X. Rules follow the VAULT manuals and the designer's composer; where the archive leaves a count open (dividers, connectors) the tool says so.</p>
+
+<footer>Not affiliated with USSA Design. VAULT is their work; this tool only helps you print the files you own. <a href="https://github.com/marcelfarres/vault-configurator">Source on GitHub</a>, under the <a href="https://github.com/marcelfarres/vault-configurator/blob/main/LICENSE">GNU AGPL v3</a> (the tool's code only).</footer>
+</main>
+</body>
+</html>
