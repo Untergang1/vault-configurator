@@ -14,6 +14,7 @@ from playwright.sync_api import sync_playwright
 
 URL = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8765"
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "docs", "media")
+SCALE = 1.5  # sharp enough to read on a phone when the pictures are shared in posts
 DEMO = {  # an L5 cart: drawers, two-bay drawers, a sustainer, grid roof, base + wheels + feet, wide backbone, wall mounts
     "name": "demo-cart", "depth": 5,
     "layers": [{"type": "Drawers", "layout": "L", "height": 2, "facades": [[1, 1]], "interior": "baseplate", "key": "key", "labels": True, "rails": True},
@@ -44,7 +45,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     with sync_playwright() as p:
         browser = p.chromium.launch()
-        page = browser.new_page(viewport={"width": 1500, "height": 950}, device_scale_factor=1)
+        page = browser.new_page(viewport={"width": 1500, "height": 950}, device_scale_factor=SCALE)
         page.goto(URL)
         page.wait_for_function("typeof state !== 'undefined' && state && typeof META !== 'undefined' && META")  # `let` globals: not on window
         page.evaluate("""(demo) => { state.stack = {...state.stack, ...demo}; state.overrides = {}; save(); location.reload(); }""", DEMO)

@@ -211,7 +211,7 @@ details{margin:8px 0}details>summary{padding:4px 0}details[open]>summary{color:v
 </div></div>
 </main>
 <div id="pop"></div>
-<div id="lightbox"><img></div>
+<div id="lightbox"></div>
 <div id="viewer"><div class="bar"><b id="viewerTitle"></b><span id="viewerStatus" class="note"></span><span style="flex:1"></span><span class="note">drag to orbit · wheel to zoom · right-drag to pan</span><button id="viewerClose">Close</button></div><canvas id="viewerCanvas"></canvas></div>
 <script>
 const $=s=>document.querySelector(s);
@@ -313,7 +313,7 @@ function showHelp(t){if(!t||state.help===false)return;const h=HELP[t.dataset.hel
 document.addEventListener('focusin',e=>showHelp(e.target.closest('[data-help]')));
 document.addEventListener('click',e=>{if(e.target.closest('#pop'))return;const t=e.target.closest('[data-help]');if(t)showHelp(t);else if(!e.target.closest('select,input'))pop.style.display='none'});
 document.addEventListener('click',e=>{const th=e.target.closest('.thumb');if(th){openViewer(th.dataset.file,th.dataset.color,th.dataset.label);return}
- const img=e.target.closest('.helpimgs img, #pop img, #helpBody img');if(img){$('#lightbox img').src=img.src;$('#lightbox').style.display='flex'}else if(e.target.closest('#lightbox'))$('#lightbox').style.display='none'});
+ const img=e.target.closest('.helpimgs img, #pop img, #helpBody img');if(img){$('#lightbox').replaceChildren(el('img',{src:img.src,alt:img.alt}));$('#lightbox').style.display='flex'}else if(e.target.closest('#lightbox'))$('#lightbox').style.display='none'});
 /* ---------------------------------------------------------------- interactive 3D viewer (three.js from CDN, loaded on first use) */
 let V=null;
 async function openViewer(file,color,label){const box=$('#viewer');box.style.display='flex';$('#viewerTitle').textContent=label||file;$('#viewerStatus').textContent='loading three.js…';
@@ -575,7 +575,7 @@ function renderPlan(plan,files){const box=$('#plates');box.replaceChildren();con
 async function runExport(path,extra,statusEl,btn){statusEl.textContent='Starting…';btn.disabled=true;const bar=$('#progressBar');bar.style.display='block';bar.firstElementChild.style.width='0%';
  try{await api(path,{stack:state.stack,settings:state.settings,overrides:state.overrides,...extra});
   while(true){await new Promise(r=>setTimeout(r,800));const st=await (await fetch('/api/export_status')).json();bar.firstElementChild.style.width=st.percent+'%';statusEl.textContent=`${st.percent}% · ${st.msg}`;
-   if(st.error)throw new Error(st.error);if(!st.running&&st.result){renderPlan(st.result.plan,st.result.files);statusEl.textContent=`done in ${st.result.seconds}s · files in ${st.result.folder}`;break}}}
+   if(st.error)throw new Error(st.error);if(!st.running&&st.result){renderPlan(st.result.plan,st.result.files);statusEl.textContent=`done in ${st.result.seconds}s · files in output/${st.result.folder.split(/[\\/]/).pop()}`;break}}}  /* no local paths on screen */
  catch(e){statusEl.replaceChildren(el('span',{class:'bad'},e.message))}finally{btn.disabled=false;setTimeout(()=>bar.style.display='none',1500)}}
 $('#planBtn').onclick=async()=>{$('#exportStatus').textContent='Planning…';try{const r=await api('/api/plan',{stack:state.stack,settings:state.settings,overrides:state.overrides});renderPlan(r.plan);$('#exportStatus').textContent=''}catch(e){$('#exportStatus').replaceChildren(el('span',{class:'bad'},e.message))}};
 $('#exportBtn').onclick=()=>runExport('/api/export',{},$('#exportStatus'),$('#exportBtn'));

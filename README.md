@@ -6,6 +6,10 @@ export one print-ready multi-plate 3MF project per printer. Runs on your own com
 
 ![Compose a stack and see what you build](docs/media/stack.jpg)
 
+**Watch it:** an 84-second [tour](docs/media/tour.mp4), or the short clips on
+[composing a stack](docs/media/stack.mp4), [parts and the 3D view](docs/media/parts.mp4) and
+[plates and export](docs/media/export.mp4). Re-made with `scripts/media/record.py`.
+
 ## Why
 
 The archive is 733 STL files in family folders (`S5`, `L²`, `Universal`, `Modifications` …) plus four
