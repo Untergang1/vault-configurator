@@ -4,11 +4,12 @@ Compose a [VAULT](https://www.ussadesign.com/pages/vault) stack, get every print
 export one print-ready multi-plate 3MF project per printer. Runs on your own computer or NAS against
 **your own copy** of the USSA Design archive; it ships none of the designer's files.
 
-![Compose a stack and see what you build](docs/media/stack.jpg)
+[![A tour of the configurator, sped up: compose a stack, see the parts with filament and time, turn a part in 3D, preview the plates and export](docs/media/tour-preview.webp)](https://marcelfarres.github.io/vault-configurator/#video)
 
-**Watch it:** an 84-second [tour](docs/media/tour.mp4), or the short clips on
-[composing a stack](docs/media/stack.mp4), [parts and the 3D view](docs/media/parts.mp4) and
-[plates and export](docs/media/export.mp4). Re-made with `scripts/media/record.py`.
+**Watch it** at normal speed with captions: the 84-second [tour](https://marcelfarres.github.io/vault-configurator/#video)
+on the project page, or download the clips on [composing a stack](docs/media/stack.mp4),
+[parts and the 3D view](docs/media/parts.mp4) and [plates and export](docs/media/export.mp4).
+Re-made with `scripts/media/record.py`.
 
 ## Why
 

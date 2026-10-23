@@ -22,6 +22,7 @@ a{color:var(--accent)}
 ol li,ul li{margin:4px 0}
 footer{margin-top:60px;color:var(--muted);font-size:14px}
 .hero{display:block;width:100%;border-radius:10px;border:1px solid var(--line);margin:18px 0 6px}
+.note{color:var(--muted);font-size:14px;margin:0 0 10px}
 .shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
 .shots figure{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .shots img{width:100%;display:block}
@@ -37,7 +38,8 @@ footer{margin-top:60px;color:var(--muted);font-size:14px}
 
 <div class="card warn"><b>You need the archive.</b> The tool ships no models, manual pages or render sheets. It only works with the folder you bought (<code>01. DRAWERS</code>, <code>02. SUSTAINERS</code>, <code>03. MODIFICATIONS</code> and the PDF manuals) and never copies it anywhere.</div>
 
-<img class="hero" src="media/stack.jpg" alt="The Stack tab: layers on the left, the composed stack drawn to scale on the right">
+<video id="video" class="hero" src="media/tour.mp4" poster="media/stack.jpg" controls muted playsinline preload="metadata">A tour of the configurator: compose a stack, see the parts with filament and time, turn a part in 3D, preview the plates and export.</video>
+<p class="note">84 seconds, with captions. Shorter clips: <a href="media/stack.mp4">composing a stack</a>, <a href="media/parts.mp4">parts and the 3D view</a>, <a href="media/export.mp4">plates and export</a>.</p>
 
 <h2>Why</h2>
 <p>The archive is 733 STL files spread over family folders and four PDF manuals. One cart needs the right module, box, facade, runner, key, latch, hinge and handle files from several of those folders, counted and set up one by one. The configurator does it from the stack you compose:</p>
@@ -60,13 +62,10 @@ footer{margin-top:60px;color:var(--muted);font-size:14px}
 <div class="card"><b>Spoolman</b>Pick the filament and colour per slot from the spools you actually own.</div>
 </div>
 
-<h2>In motion</h2>
-<video class="hero" src="media/tour.mp4" poster="media/stack.jpg" controls muted playsinline preload="metadata">A tour of the configurator: compose a stack, see the parts with filament and time, turn a part in 3D, preview the plates and export.</video>
-<p>Shorter clips: <a href="media/stack.mp4">composing a stack</a>, <a href="media/parts.mp4">parts and the 3D view</a>, <a href="media/export.mp4">plates and export</a>.</p>
-
 <h2>In pictures</h2>
 <div class="shots">
-<figure><img src="media/help.jpg" alt="Help box with the manual page and the real parts"><figcaption>Click an option: what each choice gives you, the manual page, the real parts in your size.</figcaption></figure>
+<figure><img src="media/stack.jpg" alt="The Stack tab: layers on the left, the composed stack drawn to scale on the right"><figcaption>Compose the stack: layers on the left, drawn to scale on the right.</figcaption></figure>
+<figure><img src="media/help.jpg"alt="Help box with the manual page and the real parts"><figcaption>Click an option: what each choice gives you, the manual page, the real parts in your size.</figcaption></figure>
 <figure><img src="media/viewer.jpg" alt="A module in the 3D viewer"><figcaption>Click any part picture to inspect it in 3D.</figcaption></figure>
 <figure><img src="media/parts.jpg" alt="Parts and hardware table"><figcaption>Every piece, pictured in its colour, with weight, time, size and fit.</figcaption></figure>
 <figure><img src="media/colours.jpg" alt="Colour roles and filaments"><figcaption>Colour slots, Spoolman spools, and what prints in which colour.</figcaption></figure>
