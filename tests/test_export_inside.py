@@ -36,9 +36,15 @@ STACKS = {
 }
 
 
+RIGHT = {**next(c for c in plates.PRINTER_CATALOG if c["name"] == "Bambu Lab H2C · right nozzle"),  # parts must land in x 25-330
+         "id": "h2c-right", "maxH": 325, "enabled": True, "nozzle": "0.4", "preset": ""}
+
+
 def settings_for(mode):
-    """Default settings with a process preset picked per printer the way the Plates tab does."""
+    """Default settings plus the H2C's right nozzle as a printer of its own, with a process preset picked
+    per printer the way the Plates tab does."""
     s = copy.deepcopy(plates.DEFAULT_SETTINGS)
+    s["printers"].append(copy.deepcopy(RIGHT))
     s["mode"] = mode
     for p in s["printers"]:
         rows = [r for r in presets.catalog(p["slicer"], p["profile"]) if r["nozzle"] in (p["nozzle"], "")]
@@ -49,7 +55,7 @@ def settings_for(mode):
 
 def main():
     failures, checked = [], 0
-    for mode in ("both", "h2c", "kobrax"):
+    for mode in ("both", "h2c", "kobrax", "h2c-right"):
         s = settings_for(mode)
         for name, stack in STACKS.items():
             body = {"stack": {**stack, "name": f"selftest-{name}-{mode}"}, "settings": s, "overrides": {}}
@@ -68,7 +74,9 @@ def main():
                 failures.append(f"{name}/{mode}: plan placed {plan['placed']} pieces but the files hold {on_files}")
             for f in res["files"]:
                 checked += 1
-                again = mesh.verify_3mf(f["file"], tuple(next(p["bed"] for p in s["printers"] if p["name"] == f["printer"])))
+                p = next(p for p in s["printers"] if p["name"] == f["printer"])
+                ox, oy = p.get("origin") or (0, 0)
+                again = mesh.verify_3mf(f["file"], (p["bed"][0] + ox, p["bed"][1] + oy), reach=(ox, oy, *p["bed"]))
                 if f["outside"] or again:
                     failures.append(f"{name}/{mode}: {os.path.basename(f['file'])}: {f['outside'] or again}")
             print(f"{name:8s} {mode:6s} {plan['placed']:3d}/{plan['pieces']} pieces placed, {left} unplaceable, "

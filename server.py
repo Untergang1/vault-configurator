@@ -285,7 +285,7 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path == "/api/meta":
             return self.send_json({"defaults": plates.DEFAULT_SETTINGS, "layouts": catalog.LAYOUTS, "allowed": catalog.ALLOWED_LAYOUTS,
                                    "patterns": catalog.PATTERNS, "width": catalog.WIDTH, "files": len(INDEX.files), "progress": PROGRESS,
-                                   "roles": catalog.ROLES, "roleLabels": catalog.ROLE_LABELS, "kinds": [k for k, _ in catalog.KINDS], "materials": plates.MATERIALS,
+                                   "roles": catalog.ROLES, "roleLabels": catalog.ROLE_LABELS, "kinds": [k for k, _ in catalog.KINDS], "materials": plates.MATERIALS, "printerCatalog": plates.PRINTER_CATALOG,
                                    "build": BUILD, "assets": assets_bootstrap.count(os.path.join(HERE, "assets")),
                                    "outputRoot": os.path.join(HERE, "output")})
         if self.path == "/api/progress":

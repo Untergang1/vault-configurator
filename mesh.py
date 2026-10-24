@@ -237,12 +237,14 @@ def printable_size(project, default):
         return tuple(default)
 
 
-def verify_3mf(path, bed=None, tol=0.05):
+def verify_3mf(path, bed=None, tol=0.05, reach=None):
     """Read an exported 3MF the way the slicer does and list every piece that is not entirely on its plate.
 
     Independent of how the file was written: plate N is taken from model_settings.config, the plate grid
     from the project's printable_area (Bambu/Orca: stride = 1.2 x bed, ceil(sqrt(plates)) columns, x right,
     y down), and each piece's footprint from its real vertices through its build transform.
+    reach = (x, y, w, d): the part of each plate the printer can print on (one nozzle of a dual-nozzle
+    printer), relative to the plate's corner; default the whole plate.
     Returns [] when every piece is inside, else [{plate, name, overhang_mm}]."""
     import re
     with zipfile.ZipFile(path) as z:
@@ -265,6 +267,7 @@ def verify_3mf(path, bed=None, tol=0.05):
         x0, y0, (w, d) = 0.0, 0.0, bed
     else:
         return []
+    rx, ry, rw, rd = (x0 + reach[0], y0 + reach[1], reach[2], reach[3]) if reach else (x0, y0, w, d)
     plates = re.findall(r"<plate>(.*?)</plate>", ms, re.S)
     cols = math.ceil(math.sqrt(len(plates))) if plates else 1
     problems = []
@@ -277,7 +280,7 @@ def verify_3mf(path, bed=None, tol=0.05):
                 continue
             wx = xy[:, 0] * t[0] + xy[:, 1] * t[3] + t[9]   # 3MF row-vector transform: x' = x*m00 + y*m10 + tx
             wy = xy[:, 0] * t[1] + xy[:, 1] * t[4] + t[10]
-            over = max(px + x0 - wx.min(), wx.max() - (px + x0 + w), py + y0 - wy.min(), wy.max() - (py + y0 + d))
+            over = max(px + rx - wx.min(), wx.max() - (px + rx + rw), py + ry - wy.min(), wy.max() - (py + ry + rd))
             if over > tol:
                 problems.append({"plate": i + 1, "name": names.get(oid, oid), "overhang_mm": round(float(over), 2)})
     return problems

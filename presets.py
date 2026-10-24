@@ -131,9 +131,13 @@ def overrides(slicer, preset, base, all_presets=None):
     return out
 
 
-def project_config(slicer, machine, process, filaments, colours):
+NOZZLE_MAP = {"left": "1", "right": "2"}  # Bambu extruder 1 reaches the plate's left part, 2 (the master) the right
+
+
+def project_config(slicer, machine, process, filaments, colours, nozzle_side=None):
     """Full project_settings.config dict: machine + process flattened, filament vectors concatenated
-    per slot (variant-expanded keys get `filament_self_index` like Bambu Studio writes)."""
+    per slot (variant-expanded keys get `filament_self_index` like Bambu Studio writes).
+    nozzle_side "left"/"right" pins every filament to that nozzle of a dual-nozzle printer."""
     M = flatten(machine, load_all(slicer, "machine"))
     P = flatten(process, load_all(slicer, "process"))
     fil_all = load_all(slicer, "filament")
@@ -160,7 +164,7 @@ def project_config(slicer, machine, process, filaments, colours):
     cfg["default_filament_profile"] = M.get("default_filament_profile") or [filaments[0]]
     n = len(filaments)
     cfg.update({"name": "project_settings", "from": "project", "version": vendor_version(slicer),
-                "filament_map": ["1"] * n, "filament_map_mode": "Auto For Flush", "nozzle_volume_type": ["Standard"] * len(M.get("nozzle_diameter") or [1]),
+                "filament_map": [NOZZLE_MAP.get(nozzle_side, "1")] * n, "filament_map_mode": "Manual" if nozzle_side in NOZZLE_MAP else "Auto For Flush", "nozzle_volume_type": ["Standard"] * len(M.get("nozzle_diameter") or [1]),
                 "different_settings_to_system": [""] * (n + 2), "curr_bed_type": "Textured PEI Plate",
                 "flush_volumes_vector": ["140"] * (2 * n), "flush_volumes_matrix": ["0" if i == j else "140" for i in range(n) for j in range(n)]})
     return cfg
@@ -209,6 +213,8 @@ if __name__ == "__main__":
     n = len(cfg["filament_settings_id"])
     assert cfg["printable_height"] and len(cfg["filament_type"]) == n and len(cfg["filament_colour"]) == n and len(cfg["nozzle_diameter"]) == 2
     assert cfg["filament_self_index"][:1] == ["1"] and len(cfg["filament_self_index"]) == len(cfg["filament_extruder_variant"])
+    right = project_config("bambu", "Bambu Lab H2C 0.4 nozzle", "0.20mm Standard @BBL H2C", [f1, f2], ["#AAAAAA", "#111111"], "right")
+    assert right["filament_map"] == ["2", "2"] and right["filament_map_mode"] == "Manual" and cfg["filament_map_mode"] == "Auto For Flush"
     print("project keys:", len(cfg), "| filament_type", cfg["filament_type"], "| self_index", cfg["filament_self_index"])
     k = default_filament("anycubic", "Anycubic Kobra X", "0.4", "PETG")
     cfgk = project_config("anycubic", "Anycubic Kobra X 0.4 nozzle", "0.20mm Standard @Anycubic Kobra X 0.4 nozzle", [k, k], ["#AAAAAA", "#333333"])

@@ -475,7 +475,7 @@ def kind_of(name, role=""):
 
 
 if __name__ == "__main__":  # self-check against the real archive
-    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    root = os.environ.get("VAULT_ARCHIVE") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     idx = Index(root)
     site = load_site_data(os.path.join(os.path.dirname(os.path.abspath(__file__)), "site_print_data.json"))
     stack = {"depth": 5, "layers": [

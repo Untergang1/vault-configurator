@@ -8,11 +8,34 @@ import mesh
 
 DEFAULT_PRINTERS = [  # bed sizes taken from the user's own slicer projects (printable_area)
     # H2C: one nozzle alone reaches 325 x 320 x 320 (left: x 0-325, right: x 25-330); only the union is 330 wide
-    {"id": "h2c", "name": "Bambu Lab H2C", "bed": [325, 320], "z": 320, "maxH": 320, "multi": True, "enabled": True,
+    {"id": "h2c", "name": "Bambu Lab H2C", "bed": [325, 320], "z": 320, "maxH": 320, "enabled": True,
      "slicer": "bambu", "profile": "Bambu Lab H2C", "nozzle": "0.4", "preset": ""},
-    {"id": "kobrax", "name": "Anycubic Kobra X", "bed": [260, 260], "z": 260, "maxH": 120, "multi": False, "enabled": True,
+    {"id": "kobrax", "name": "Anycubic Kobra X", "bed": [260, 260], "z": 260, "maxH": 120, "enabled": True,
      "slicer": "anycubic", "profile": "Anycubic Kobra X", "nozzle": "0.4", "preset": ""},
 ]
+# "Add printer" list. Bambu beds from Bambu Studio's machine presets, Anycubic from Anycubic Slicer Next's,
+# the rest from the makers' spec sheets; `profile` is the model name the slicer's presets carry.
+PRINTER_CATALOG = [{"name": n, "profile": n, "bed": [x, y], "z": z, "slicer": sl} for sl, rows in {
+    "bambu": [("Bambu Lab A1 mini", 180, 180, 180), ("Bambu Lab A1", 256, 256, 256), ("Bambu Lab A2L", 330, 320, 325),
+              ("Bambu Lab P1P", 256, 256, 250), ("Bambu Lab P1S", 256, 256, 250), ("Bambu Lab P2S", 256, 256, 256),
+              ("Bambu Lab X1", 256, 256, 250), ("Bambu Lab X1 Carbon", 256, 256, 250), ("Bambu Lab X1E", 256, 256, 250),
+              ("Bambu Lab H2S", 340, 320, 340)],
+    "anycubic": [("Anycubic Kobra X", 260, 260, 260), ("Anycubic Kobra S1", 250, 250, 250), ("Anycubic Kobra S1 Max", 350, 350, 350),
+                 ("Anycubic Kobra 3 V2", 255, 255, 260)],
+    "orca": [("Prusa CORE One", 250, 220, 270), ("Prusa MK4S", 250, 210, 220), ("Prusa MINI", 180, 180, 180), ("Prusa XL", 360, 360, 360),
+             ("Creality K1C", 220, 220, 250), ("Creality K1 Max", 300, 300, 300), ("Creality K2 Plus", 350, 350, 350),
+             ("Creality Ender-3 V3 SE", 220, 220, 250), ("Elegoo Centauri Carbon", 256, 256, 256), ("Elegoo Neptune 4 Pro", 225, 225, 265),
+             ("Qidi Q1 Pro", 245, 245, 240), ("Qidi Q2", 270, 270, 256), ("Flashforge AD5X", 220, 220, 220), ("Snapmaker U1", 270, 270, 270),
+             ("Sovol SV08", 350, 350, 345), ("Voron 2.4 350", 350, 350, 340)],
+}.items() for n, x, y, z in rows]
+# Dual-nozzle Bambus, once per nozzle (extruder_printable_area): each nozzle alone reaches only part of the plate;
+# `origin` is where the right nozzle's area starts, and that printer's file pins every filament to its nozzle.
+for model, y, left, right in (("Bambu Lab H2C", 320, (325, 320), (305, 325, 25)), ("Bambu Lab H2D", 320, (325, 320), (325, 325, 25)),
+                              ("Bambu Lab H2D Pro", 320, (325, 320), (325, 325, 25)), ("Bambu Lab X2D", 256, (256, 261), (235.5, 256, 20.5))):
+    PRINTER_CATALOG += [{"name": f"{model} · left nozzle", "profile": model, "bed": [left[0], y], "z": left[1], "slicer": "bambu", "nozzleSide": "left"},
+                        {"name": f"{model} · right nozzle", "profile": model, "bed": [right[0], y], "z": right[1], "slicer": "bambu",
+                         "nozzleSide": "right", "origin": [right[2], 0]}]
+PRINTER_CATALOG.sort(key=lambda p: p["name"])
 MATERIALS = ["PLA", "PETG", "PETG-CF", "PETG-GF", "ASA", "ABS", "TPU"]
 DEFAULT_FILAMENTS = [  # one slot per colour role; `preset` = slicer filament preset per printer id
     {"name": "light grey", "color": "#9da3a8", "material": "PETG", "preset": {}},
@@ -355,7 +378,7 @@ def project_for(s, p):
         names.append(name)
         colours.append((f.get("color") or "#808080").upper())
     try:
-        return presets_mod.project_config(p["slicer"], machine, p["preset"], names, colours), names
+        return presets_mod.project_config(p["slicer"], machine, p["preset"], names, colours, p.get("nozzleSide")), names
     except ValueError as e:
         return {"_error": str(e)}, names
 
@@ -378,6 +401,8 @@ def export(plan_result, settings, out_dir, root, stats_fn, stack_name="vault", s
         t = time.time()
         allp = presets_mod.load_all(p["slicer"]) if p.get("slicer") in presets_mod.SLICERS else {}
         objects, index, plates = [], {}, []
+        ox, oy = p.get("origin") or (0, 0)  # where this nozzle's reach starts on the plate
+        full_bed = (p["bed"][0] + ox, p["bed"][1] + oy)
         for pl in mine:
             items = []
             for it in pl["items"]:
@@ -391,16 +416,16 @@ def export(plan_result, settings, out_dir, root, stats_fn, stack_name="vault", s
                                     "mesh": mesh.load_aligned(root, it["file"], stats_fn(it["file"])),
                                     "extruder": int(s["roles"].get(it["role"], 0)) + 1, "config": cfg})
                     done += 1
-                items.append((index[key], it["x"], it["y"], it["rot"]))
+                items.append((index[key], it["x"] + ox, it["y"] + oy, it["rot"]))
             plates.append({"name": pl["name"], "items": items})
         pname = re.sub(r"[^A-Za-z0-9]+", "-", p["name"]).strip("-")
         path = os.path.join(out_dir, f"{stack_name}{suffix}_{pname}.3mf")
         progress(100 * done / total, f"{p['name']}: writing {os.path.basename(path)} ({len(plates)} plates)")
         project, fil_names = project_for(s, p)
         warn = project.pop("_error", None) if project else "no slicer preset chosen for this printer; opened file keeps the slicer's current presets"
-        mesh.write_3mf(path, objects, plates, tuple(p["bed"]), f"{stack_name}{suffix} · {p['name']}", project if project else None)
+        mesh.write_3mf(path, objects, plates, full_bed, f"{stack_name}{suffix} · {p['name']}", project if project else None)
         progress(100 * done / total, f"{p['name']}: checking every piece is on its plate")
-        outside = mesh.verify_3mf(path, tuple(p["bed"]))  # read back the way the slicer will
+        outside = mesh.verify_3mf(path, full_bed, reach=(ox, oy, *p["bed"]))  # read back the way the slicer will
         if outside:
             warn = (warn + " · " if warn else "") + f"{len(outside)} piece(s) not entirely on their plate: " + ", ".join(f"{o['name']} (plate {o['plate']}, {o['overhang_mm']} mm)" for o in outside[:4])
         done += 1

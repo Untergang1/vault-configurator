@@ -162,7 +162,8 @@ details{margin:8px 0}details>summary{padding:4px 0}details[open]>summary{color:v
 <div class="tab" id="tab-plates"><div class="linear">
  <section>
   <h2>Step 1 · Printers</h2>
-  <table id="printers"><thead><tr><th>Use</th><th>Printer</th><th>Bed X</th><th>Bed Y</th><th>Z</th><th data-help="noTall">No tall parts</th><th data-help="maxH">Max part height</th></tr></thead><tbody></tbody></table>
+  <table id="printers"><thead><tr><th>Use</th><th>Printer</th><th>Bed X</th><th>Bed Y</th><th>Z</th><th data-help="noTall">No tall parts</th><th data-help="maxH">Max part height</th><th></th></tr></thead><tbody></tbody></table>
+  <div class="row"><label data-help="addPrinter">Add printer <select id="addPrinter"></select></label></div>
   <details><summary>Slicer, nozzle and presets per printer</summary>
    <table id="slicers"><thead><tr><th>Printer</th><th>Slicer</th><th>Profile</th><th>Nozzle</th><th data-help="machine">Machine preset</th><th data-help="defaultPreset">Default process preset</th></tr></thead><tbody></tbody></table>
    <p class="note">Presets are read from the slicers' own folders (your presets first). "0.20mm" in a process preset name is the layer height, not the nozzle; the nozzle is the column before it. The exported file is a full project: it opens with this machine, this process preset and the filaments from step 2 already set, with your colours. H2C bed is 325 × 320 × 320: what one nozzle alone reaches.</p>
@@ -192,7 +193,7 @@ details{margin:8px 0}details>summary{padding:4px 0}details[open]>summary{color:v
   <div class="row"><button id="planBtn">Preview plates</button><button id="exportBtn" class="primary">Export 3MF (one project per printer)</button><span id="exportStatus" class="note"></span></div>
   <div class="progress" id="progressBar" style="display:none"><div></div></div>
   <details><summary>Packing and estimate options</summary>
-   <div class="row"><label data-help="mode">Send parts to <select id="mode"><option value="both">both printers (balance print time)</option></select></label>
+   <div class="row"><label data-help="mode">Send parts to <select id="mode"><option value="both">all printers (balance print time)</option></select></label>
     <label data-help="groupBy">Group plates by <select id="groupBy"><option value="color">colour · fewest plates (recommended)</option><option value="module">module and colour</option></select></label></div>
    <div class="row"><label data-help="spacing">Part spacing <input type="number" id="spacing" step="1" min="0"> mm</label><label data-help="edge">Bed edge <input type="number" id="edge" step="1" min="0"> mm</label></div>
    <div class="row"><label data-help="estimate"><input type="checkbox" id="estimateFromPreset"> Weight estimate uses the process preset's walls and infill</label><span id="estimateInfo" class="note"></span></div>
@@ -205,7 +206,7 @@ details{margin:8px 0}details>summary{padding:4px 0}details[open]>summary{color:v
   <details><summary><b>Step 4 · Tune a process preset per part group (optional)</b></summary>
    <p class="note">Tick <b>test</b> on the groups you want to tune, press <b>Export test plates</b>: each printer gets a TEST file with one plate per group holding one of each part (an assembly's parts together). Tune and save a preset in the slicer, press <b>Rescan presets</b>, pick it here; the real export then applies it. Per-part rows override the group.</p>
    <div class="row"><button id="rescan">Rescan presets</button><button id="testBtn">Export test plates</button><span id="testStatus" class="note"></span></div>
-   <table id="presetTable"><thead><tr><th>Test</th><th>Group / part</th><th id="presetHead1"></th><th id="presetHead2"></th></tr></thead><tbody></tbody></table>
+   <table id="presetTable"><thead><tr><th>Test</th><th>Group / part</th></tr></thead><tbody></tbody></table>
   </details>
  </section>
 </div></div>
@@ -276,7 +277,8 @@ const HELP={
  wallmount:['Wall mounts','A mounting plate per layer plus wall brackets, so the stack hangs on a wall.','wall-mount.jpg',[{n:['{F}{H}F Wall Mount','{F}2F Wall Mount'],h:'wall mounts',l:'wall mount'},[MOD+'Wall Mounts\\Wall Mount Second Part.stl','Second part (wall)']]],
  noTall:['No tall parts','Tick for a bed-slinger: parts taller than the limit (modules stand 146–324 mm tall) go to the other printer.',null],
  maxH:['Max part height','Tallest part this printer may print; defaults to its Z height.',null],
- mode:['Send parts to','Balance the estimated print time over both printers, or send everything to one printer.',null],
+ mode:['Send parts to','Balance the estimated print time over all enabled printers, or send everything to one printer.',null],
+ addPrinter:['Add printer','Pick a printer to add a row for it. Dual-nozzle Bambus are listed once per nozzle: each nozzle alone reaches only part of the plate, and the exported file sends every filament to that nozzle. "Custom printer" adds a row where you type the name and bed size; × removes a printer.',null],
  groupBy:['Group plates by','Colour: all parts of a colour on a printer share plates, fewest plates. Module: a module\'s parts of one colour stay together.',null],
  spacing:['Part spacing','Gap between parts on a plate.',null],
  edge:['Bed edge','Keep-out margin at the bed edge (the slicer already handles its own exclusion zones).',null],
@@ -470,8 +472,15 @@ function renderSetup(){const s=state.settings;const tb=$('#printers tbody');tb.r
   tr.append(el('td',{},el('input',{type:'checkbox',...(p.enabled?{checked:''}:{}),onchange:e=>{p.enabled=e.target.checked;changed()}})),el('td',{},f('name','text')),
    el('td',{},el('input',{type:'number',value:p.bed[0],onchange:e=>{p.bed[0]=+e.target.value;changed()}})),el('td',{},el('input',{type:'number',value:p.bed[1],onchange:e=>{p.bed[1]=+e.target.value;changed()}})),
    el('td',{},f('z')),el('td',{},el('input',{type:'checkbox',...(noTall?{checked:''}:{}),onchange:e=>{p.maxH=e.target.checked?Math.min(p.maxH||120,p.z-1):p.z;changed();renderSetup()}})),
-   el('td',{},noTall?f('maxH'):el('span',{class:'note'},`${p.z} (all)`)));tb.append(tr)});
- const mode=$('#mode');mode.replaceChildren(el('option',{value:'both'},'both printers (balance print time)'));s.printers.forEach(p=>mode.append(el('option',{value:p.id},p.name+' only')));mode.value=s.mode;
+   el('td',{},noTall?f('maxH'):el('span',{class:'note'},`${p.z} (all)`)),
+   el('td',{},el('button',{class:'small',title:'remove this printer',onclick:()=>{s.printers.splice(s.printers.indexOf(p),1);if(s.mode===p.id)s.mode='both';renderSetup();changed()}},'×')));tb.append(tr)});
+ const add=$('#addPrinter'),groups={};add.replaceChildren(el('option',{value:''},'choose a printer…'));
+ META.printerCatalog.forEach((c,i)=>{const v=c.name.match(/^(Bambu Lab|\S+)/)[0];(groups[v]=groups[v]||el('optgroup',{label:v})).append(el('option',{value:i},c.name))});
+ add.append(...Object.values(groups),el('option',{value:'custom'},'Custom printer (type its bed size in the new row)'));
+ add.onchange=e=>{if(!e.target.value)return;const c=e.target.value==='custom'?{name:'My printer',profile:'',bed:[220,220],z:250,slicer:'orca'}:META.printerCatalog[+e.target.value];
+  const base=c.name.toLowerCase().replace(/[^a-z0-9]+/g,'-');let id=base,n=2;while(s.printers.some(p=>p.id===id))id=`${base}-${n++}`;
+  s.printers.push({...c,bed:[...c.bed],id,maxH:c.z,enabled:true,nozzle:'0.4',preset:''});renderSetup();changed()};
+ const mode=$('#mode');mode.replaceChildren(el('option',{value:'both'},'all printers (balance print time)'));s.printers.forEach(p=>mode.append(el('option',{value:p.id},p.name+' only')));mode.value=s.mode;
  $('#groupBy').value=s.groupBy;$('#spacing').value=s.spacing;$('#edge').value=s.edge;$('#wallMm').value=s.wallMm;$('#infill').value=s.infill;$('#secondsPerGram').value=s.secondsPerGram;$('#spoolman').value=s.spoolman||'';
  $('#estimateFromPreset').checked=s.estimateFromPreset!==false;$('#estimateManual').style.display=s.estimateFromPreset!==false?'none':'';
  renderSlicers();renderFilaments();renderColours();renderPresetTable()}
@@ -517,14 +526,14 @@ function renderColours(){const s=state.settings,parts=bom?bom.parts:[];
   const sel=el('select',{onchange:e=>{if(e.target.value)s.kindRoles[k]=e.target.value;else delete s.kindRoles[k];changed();renderColours()}});sel.append(el('option',{value:''},'keep (as tagged by the designer)'));ROLES().forEach(r=>sel.append(el('option',{value:r,...(s.kindRoles[k]===r?{selected:''}:{})},`${META.roleLabels[r].split(' (')[0]} → ${s.filaments[s.roles[r]??0].name}`)));
   const role=s.kindRoles[k]||(kp[0]&&kp[0].role)||'main';kt.append(el('tr',{},el('td',{},k,el('div',{class:'note'},`${[...new Set(kp.map(p=>p.name))].length} parts · now ${s.filaments[s.roles[role]??0].name}`)),el('td',{},examples(kp,slotColor(role),4)),el('td',{},el('span',{class:'swatch',style:`background:${slotColor(role)}`}),sel)))})}
 
-function renderPresetTable(){const s=state.settings,tb=$('#presetTable tbody');tb.replaceChildren();const ps=s.printers.filter(p=>p.enabled);$('#presetHead1').textContent=ps[0]?ps[0].name:'';$('#presetHead2').textContent=ps[1]?ps[1].name:'';
- if(!bom){tb.append(el('tr',{},el('td',{colspan:4,class:'note'},'Build a stack first.')));return}
+function renderPresetTable(){const s=state.settings,tb=$('#presetTable tbody');tb.replaceChildren();const ps=s.printers.filter(p=>p.enabled);$('#presetTable thead tr').replaceChildren(el('th',{},'Test'),el('th',{},'Group / part'),...ps.map(p=>el('th',{},p.name)));
+ if(!bom){tb.append(el('tr',{},el('td',{colspan:2+ps.length,class:'note'},'Build a stack first.')));return}
  const kinds={};bom.parts.forEach(p=>{(kinds[p.kind]=kinds[p.kind]||[]).push(p.name)});
  const pre=pid=>(s.presets[pid]=s.presets[pid]||{byKind:{},byPart:{}});
  Object.entries(kinds).forEach(([kind,names])=>{const tr=el('tr',{},el('td',{},el('input',{type:'checkbox',...(state.tests[kind]?{checked:''}:{}),onchange:e=>{state.tests[kind]=e.target.checked;save()}})),el('td',{},el('b',{},kind),el('span',{class:'note'},` · ${[...new Set(names)].length} parts`)));
   ps.forEach(p=>tr.append(el('td',{},presetSelect(presetsFor(p),pre(p.id).byKind[kind]||'',v=>{pre(p.id).byKind[kind]=v},true,'(printer default)'))));
-  for(let i=ps.length;i<2;i++)tr.append(el('td'));tb.append(tr);
-  [...new Set(names)].forEach(n=>{const r=el('tr',{class:'sub'},el('td'),el('td',{},n));ps.forEach(p=>r.append(el('td',{},presetSelect(presetsFor(p),pre(p.id).byPart[n]||'',v=>{if(v)pre(p.id).byPart[n]=v;else delete pre(p.id).byPart[n]},true,'(group)'))));for(let i=ps.length;i<2;i++)r.append(el('td'));tb.append(r)})})}
+  tb.append(tr);
+  [...new Set(names)].forEach(n=>{const r=el('tr',{class:'sub'},el('td'),el('td',{},n));ps.forEach(p=>r.append(el('td',{},presetSelect(presetsFor(p),pre(p.id).byPart[n]||'',v=>{if(v)pre(p.id).byPart[n]=v;else delete pre(p.id).byPart[n]},true,'(group)'))));tb.append(r)})})}
 
 function collectStack(){const st=state.stack;st.name=$('#name').value;st.depth=+$('#depth').value;st.roof={type:$('#roofType').value,topHandle:$('#topHandle').checked};
  document.querySelectorAll('[data-mod]').forEach(i=>{st.mods[i.dataset.mod]=i.type==='checkbox'?i.checked:i.value});}
@@ -555,7 +564,7 @@ function renderBom(){const cards=$('#cards'),pt=$('#parts tbody'),ht=$('#hardwar
  const rows=state.merge?Object.values(bom.parts.reduce((m,p)=>{const r=m[p.name]||(m[p.name]={...p,qty:0,parts:[],groups:[]});r.qty+=+p.qty;r.parts.push(p);r.groups.push(p.group);return m},{})):bom.parts.map(p=>({...p,parts:[p],groups:[p.group]}));
  let g='';rows.forEach(p=>{if(!state.merge&&p.group!==g){g=p.group;const gp=bom.parts.filter(x=>x.group===g);pt.append(el('tr',{},el('td',{class:'group',colspan:4},g),el('td',{colspan:5},roleSel(uniform(gp),v=>setRole(gp,v),'(as tagged / mixed) — set whole module'))))}
   const role=roleSel(uniform(p.parts),v=>setRole(p.parts,v),'(as tagged)');const col=s.filaments[s.roles[p.role]??0].color;
-  const fits=p.fits?Object.entries(p.fits).map(([id,ok])=>el('span',{class:'chip '+(ok?'ok':'bad')},(s.printers.find(x=>x.id===id)||{name:id}).name.split(' ').slice(-1)[0]+(ok?' ✓':' ✗'))):[el('span',{class:'bad'},'file missing')];
+  const fits=p.fits?Object.entries(p.fits).map(([id,ok])=>el('span',{class:'chip '+(ok?'ok':'bad')},(s.printers.find(x=>x.id===id)||{name:id}).name.replace(/^(Bambu Lab|\S+) /,'')+(ok?' ✓':' ✗'))):[el('span',{class:'bad'},'file missing')];
   const where=state.merge?el('div',{class:'note'},'in: '+p.groups.map(x=>x.split(' · ')[0]).join(', ')):'';
   pt.append(el('tr',{},el('td',{},thumb(p.file,col)),el('td',{},p.name,p.note?el('div',{class:'note'},p.note):'',where),el('td',{class:'note'},p.kind),el('td',{class:'num'},String(p.qty)),el('td',{},el('span',{class:'swatch',style:`background:${col}`}),role),el('td',{class:'num'},p.grams!=null?Math.round(p.grams)+(p.site_grams!=null?'':'*'):'?'),el('td',{class:'num'},p.seconds!=null?fmtH(p.seconds):'?'),el('td',{},p.size?p.size.map(v=>Math.round(v)).join('×'):'?'),el('td',{},...fits)))});
  bom.hardware.forEach(h=>ht.append(el('tr',{},el('td',{},h.item),el('td',{class:'num'},String(h.qty)),el('td',{class:'note'},h.notes))));
