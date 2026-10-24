@@ -138,6 +138,8 @@ class Bom:
             faces = layer["facades"][col]
             for fh in faces:
                 fh = int(fh)
+                runners = 2 if fh == 1 else 4
+                runner_note = "Two per 1F box, four per 2F/4F box (two runner pairs per side)."
                 if f == "XL":
                     if depth >= 6:
                         self.add(g, f"XL{depth} Box 1F Part 1", "drawers boxes", 1, MAIN, site_key=f"Drawer box:XL:{depth}:1")
@@ -146,14 +148,14 @@ class Bom:
                         self.add(g, f"XL{depth} Box 1F", "drawers boxes", 1, MAIN, site_key=f"Drawer box:XL:{depth}:1")
                         self.add(g, f"XL{depth} Back Panel", "drawers boxes", 1, MAIN)
                     self.add(g, "XL Facade 1F", "drawers xl families", 1, MAIN, site_key="Drawer facade:XL::1")
-                    self.add(g, f"x{depth} Runner Guide XL", "xl runners", 2, MAIN, site_key=f"Rail 2:All:{depth}:")
-                    self.add(g, f"x{depth} Runner Slide XL", "xl runners", 2, MAIN, site_key=f"Rail 1:All:{depth}:")
+                    self.add(g, f"x{depth} Runner Guide XL", "xl runners", runners, MAIN, note=runner_note, site_key=f"Rail 2:All:{depth}:")
+                    self.add(g, f"x{depth} Runner Slide XL", "xl runners", runners, MAIN, note=runner_note, site_key=f"Rail 1:All:{depth}:")
                 else:
                     self.add(g, f"{f}{depth} Box {fh}F", "drawers boxes", 1, MAIN, site_key=f"Drawer box:{f}:{depth}:{fh}")
                     self.add(g, f"{f}{fh}F (Turn On Supports)", "drawers facades", 1, MAIN, note="Print with supports on.", site_key=f"Drawer facade:{f}::{fh}")
-                    self.add(g, f"x{depth} Runner Guide", "universal runners", 2, MAIN, site_key=f"Rail 2:All:{depth}:")
-                    self.add(g, f"x{depth} Runner Slide", "universal runners", 2, MAIN, site_key=f"Rail 1:All:{depth}:")
-                self.add(g, "Runner Stopper", "runners", 2, ACCENT)
+                    self.add(g, f"x{depth} Runner Guide", "universal runners", runners, MAIN, note=runner_note, site_key=f"Rail 2:All:{depth}:")
+                    self.add(g, f"x{depth} Runner Slide", "universal runners", runners, MAIN, note=runner_note, site_key=f"Rail 1:All:{depth}:")
+                self.add(g, "Runner Stopper", "runners", runners, ACCENT, note="One per runner slide.")
                 if key == "hidden":
                     self.add(g, "Hidden Key (Turn On Supports)", "drawers universal", 1, DARK, note="Supports on.", site_key="Drawer lock:All::")
                     self.add(g, "Hidden Key Part 2 (Turn on Supports)", "drawers universal", 1, DARK, note="Supports on.")
@@ -487,7 +489,7 @@ if __name__ == "__main__":  # self-check against the real archive
         print(f'{l["group"]:34s} {l["qty"]:2d} x {l["name"]:40s} [{l["role"]}] {l["file"] or "MISSING"}')
     print("hardware:", r["hardware"]); print("warnings:", r["warnings"])
     assert not missing, missing
-    assert sum(l["qty"] for l in r["parts"] if l["name"].endswith("Runner Guide")) == 8  # 3 S boxes + 1 L box, 2 each
+    assert sum(l["qty"] for l in r["parts"] if l["name"].endswith("Runner Guide")) == 10  # S 1F + S 1F + L 1F boxes at 2 each, S 2F box at 4
     kinds = {l["name"]: l["kind"] for l in r["parts"]}
     assert kinds["S5 Box 1F"] == "box" and kinds["L5² Module 2F"] == "module" and kinds["Springs"] == "lock mechanism"
     assert kinds["L5 1F Dividers Module"] == "module" and kinds["L-1F Width Divider"] == "dividers"
