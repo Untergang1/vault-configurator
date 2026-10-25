@@ -73,7 +73,9 @@ The project page and images from the designer's manuals are unchanged.
 
 You need the VAULT archive you bought: the folder with `01. DRAWERS`, `02. SUSTAINERS`,
 `03. MODIFICATIONS` and the PDF manuals. It is read in place and never copied. At first start the help
-pages are extracted from your PDFs and the render sheets fetched from ussadesign.com.
+pages are extracted from your PDFs and the render sheets fetched from ussadesign.com, and every STL
+is measured and pictured once in the background (a few minutes of one CPU core at the lowest priority,
+paused while you use the page; kept in `cache/`, so later starts skip it).
 
 **One click, on your own computer** (no server, no Python install). Download this repository
 (green **Code** button, **Download ZIP**, or `git clone`) and double-click the starter for your system:

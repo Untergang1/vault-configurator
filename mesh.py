@@ -5,6 +5,7 @@ Everything here is numpy + stdlib. Meshes are kept as (triangles, 3, 3) float ar
 import json
 import math
 import os
+import threading
 import time
 import zipfile
 from xml.sax.saxutils import escape
@@ -36,6 +37,14 @@ def mesh_volume(tri):
     return float(np.einsum("ij,ij->i", tri[:, 0], np.cross(tri[:, 1], tri[:, 2])).sum() / 6.0)
 
 
+def unique_rows(p):
+    """np.unique(p, axis=0) for an (n, 2) array: the same rows in the same order, without its slow structured sort."""
+    s = p[np.lexsort((p[:, 1], p[:, 0]))]
+    keep = np.ones(len(s), bool)
+    keep[1:] = (s[1:] != s[:-1]).any(1)
+    return s[keep]
+
+
 def best_xy_angle(points):
     """Rotation (degrees, about Z) that gives the minimum-area XY bounding box.
     The STLs come out of CAD at arbitrary world rotations; this re-squares them.
@@ -50,7 +59,7 @@ def best_xy_angle(points):
         area = (x.max(0) - x.min(0)) * (y.max(0) - y.min(0))
         return float(angles[int(np.argmin(area))])
 
-    pts = np.unique(np.round(xy, 0), axis=0)  # 1 mm grid, usually a few thousand points
+    pts = unique_rows(np.round(xy, 0))  # 1 mm grid, usually a few thousand points
     if len(pts) > 20000:
         pts = pts[np.random.default_rng(0).choice(len(pts), 20000, replace=False)]
     coarse = sweep(pts, np.arange(0, 90, 0.5))
@@ -59,7 +68,7 @@ def best_xy_angle(points):
     rx = xy[:, 0] * math.cos(a) - xy[:, 1] * math.sin(a)
     ry = xy[:, 0] * math.sin(a) + xy[:, 1] * math.cos(a)
     band = (rx < rx.min() + 3) | (rx > rx.max() - 3) | (ry < ry.min() + 3) | (ry > ry.max() - 3)
-    edge = np.unique(xy[band], axis=0)
+    edge = unique_rows(xy[band])
     if len(edge) > 50000:
         edge = edge[np.random.default_rng(0).choice(len(edge), 50000, replace=False)]
     fine = sweep(edge, np.arange(coarse - 0.6, coarse + 0.6, 0.01))
@@ -82,6 +91,7 @@ class StatsCache:
         self.root = root
         self.cache_file = cache_file
         self.data = {}
+        self.lock = threading.Lock()
         if os.path.exists(cache_file):
             with open(cache_file, encoding="utf-8") as f:  # older caches also keyed by mtime: drop it
                 self.data = {k if k.count("|") == 1 else k.rsplit("|", 1)[0]: v for k, v in json.load(f).items()}
@@ -91,11 +101,18 @@ class StatsCache:
         return f"{rel}|{os.stat(os.path.join(self.root, rel)).st_size}"
 
     def get(self, rel):
+        """Thread-safe. The lock covers only the dict and the file, so a request never waits on the
+        background warm-up's part; two threads asking for the same new part both compute it, harmlessly."""
         key = self._key(rel)
-        if key not in self.data or "topx" not in self.data[key]:
-            self.data[key] = self._compute(rel)
+        with self.lock:
+            hit = self.data.get(key)
+        if hit and "topx" in hit:
+            return hit
+        val = self._compute(rel)
+        with self.lock:
+            self.data[key] = val
             self.save()
-        return self.data[key]
+        return val
 
     def _compute(self, rel):
         tri = read_stl(os.path.join(self.root, rel))

@@ -15,8 +15,8 @@ redeploy, waits until the NAS reports the new build, and runs `deploy/smoke_test
    - environment variable `VAULT_ARCHIVE=<the dataset path from step 1>`. It is a stack variable on
      purpose: the compose file stays generic and your NAS layout stays out of the public repo. The
      stack refuses to start without it.
-   - deploy; then open `http://<nas>:8765`. First start measures all 733 STLs once (several minutes;
-     cached in the `vault-cache` volume) and extracts the help pages from your PDFs.
+   - deploy; then open `http://<nas>:8765`. First start measures all 733 STLs once in the background
+     (a few minutes at low priority, paused while the page is in use; cached in the `vault-cache` volume) and extracts the help pages from your PDFs.
 4. **Updates.** Turn on the stack's webhook (and, as a fallback, auto-update with a cron such as
    `*/30 * * * *`; Dockhand only redeploys when the repo changed). GitHub cannot reach a NAS on a
    private network, so the PC calls the webhook instead: put its URL and secret in

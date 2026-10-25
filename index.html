@@ -332,13 +332,17 @@ async function openViewer(file,color,label){const box=$('#viewer');box.style.dis
    const controls=new OrbitControls(camera,canvas);controls.enableDamping=true;controls.dampingFactor=.12;controls.rotateSpeed=.8;controls.zoomSpeed=1.2;controls.screenSpacePanning=true;controls.maxPolarAngle=Math.PI*0.95;
    scene.add(new THREE.HemisphereLight(0xffffff,0x444444,1.1));const dl=new THREE.DirectionalLight(0xffffff,1.4);dl.position.set(1,2,3);scene.add(dl);const dl2=new THREE.DirectionalLight(0xffffff,.5);dl2.position.set(-2,-1,-1);scene.add(dl2);
    const grid=new THREE.GridHelper(400,40,0x444444,0x2a2d30);grid.rotation.x=Math.PI/2;scene.add(grid);
-   V={THREE,STLLoader,renderer,scene,camera,controls,grid,mesh:null,run:false};
-   const loop=()=>{if(!V.run)return;const w=canvas.clientWidth,h=canvas.clientHeight;if(canvas.width!==w||canvas.height!==h){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}controls.update();renderer.render(scene,camera);requestAnimationFrame(loop)};V.loop=loop}
-  V.run=true;V.loop();if(V.mesh){V.scene.remove(V.mesh);V.mesh.geometry.dispose()}
+   V={THREE,STLLoader,renderer,scene,camera,controls,grid,mesh:null,run:false,raf:0,dirty:true};
+   /* render on demand: a frame only while something changes (drag, wheel, damping glide, resize, new part); a still view costs nothing */
+   const frame=()=>{V.raf=0;if(!V.run)return;const w=canvas.clientWidth,h=canvas.clientHeight;if(canvas.width!==w||canvas.height!==h){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();V.dirty=true}
+    const moving=controls.update();if(moving||V.dirty){renderer.render(scene,camera);V.dirty=false}if(moving)V.kick()};
+   V.kick=()=>{if(V.run&&!V.raf)V.raf=requestAnimationFrame(frame)};V.redraw=()=>{V.dirty=true;V.kick()};
+   controls.addEventListener('change',V.redraw);new ResizeObserver(V.redraw).observe(canvas)}
+  V.run=true;V.redraw();if(V.mesh){V.scene.remove(V.mesh);V.mesh.geometry.dispose();V.mesh.material.dispose()}
   VaultI18n.setText($('#viewerStatus'),'loading part…');const geo=await new V.STLLoader().loadAsync('/stl/'+encodeURIComponent(file));geo.computeVertexNormals();geo.computeBoundingBox();
   const b=geo.boundingBox,c=b.getCenter(new V.THREE.Vector3()),size=b.getSize(new V.THREE.Vector3());geo.translate(-c.x,-c.y,-b.min.z);
   V.mesh=new V.THREE.Mesh(geo,new V.THREE.MeshStandardMaterial({color:new V.THREE.Color(color||'#c9ccd0'),metalness:.05,roughness:.6}));V.scene.add(V.mesh);
-  const r=Math.max(size.x,size.y,size.z);V.camera.position.set(r*1.2,-r*1.4,r*1.0);V.controls.target.set(0,0,size.z/2);V.controls.update();V.camera.near=r/100;V.camera.far=r*20;V.camera.updateProjectionMatrix();V.grid.scale.setScalar(Math.max(1,r/200));
+  const r=Math.max(size.x,size.y,size.z);V.camera.position.set(r*1.2,-r*1.4,r*1.0);V.controls.target.set(0,0,size.z/2);V.controls.update();V.camera.near=r/100;V.camera.far=r*20;V.camera.updateProjectionMatrix();V.grid.scale.setScalar(Math.max(1,r/200));V.redraw();
   VaultI18n.setText($('#viewerStatus'),`${size.x.toFixed(1)} × ${size.y.toFixed(1)} × ${size.z.toFixed(1)} mm · ${(geo.attributes.position.count/3).toLocaleString()} triangles`)}
  catch(e){$('#viewerStatus').replaceChildren(el('span',{class:'bad'},'viewer failed: '+e.message))}}
 const closeViewer=()=>{$('#viewer').style.display='none';if(V)V.run=false};$('#viewerClose').onclick=closeViewer;$('#viewer').addEventListener('click',e=>{if(e.target===$('#viewer'))closeViewer()});
@@ -615,7 +619,7 @@ document.querySelectorAll('[data-mod]').forEach(i=>i.addEventListener('change',(
  $('#helpOn').checked=state.help!==false;if(state.settings.spoolman)$('#spoolmanBox').open=true;
  fillStack();renderSetup();renderLayers();drawSchematic();showTab(state.tab);compute();
  if(state.settings.spoolman){try{const j=await (await fetch('/api/spoolman?url='+encodeURIComponent(state.settings.spoolman))).json();if(j.spools){SPOOLS=j.spools;VaultI18n.setText($('#spoolmanStatus'),`${SPOOLS.length} spools`);renderSetup()}}catch{}}
- setInterval(async()=>{const p=await (await fetch('/api/progress')).json();VaultI18n.setText($('#meta'),`${META.files} STL files indexed · ${p.total&&p.done<p.total?`preparing parts ${p.done}/${p.total}`:'all parts ready'}`)},3000);  /* no local paths on screen: they end up in screenshots */
+ const poll=setInterval(async()=>{if(document.hidden)return;const p=await (await fetch('/api/progress')).json();if(p.finished)clearInterval(poll);VaultI18n.setText($('#meta'),`${META.files} STL files indexed · ${p.total&&p.done<p.total?`preparing parts ${p.done}/${p.total}`:'all parts ready'}`)},3000);  /* no local paths on screen: they end up in screenshots */
 })();
 </script>
 </body>

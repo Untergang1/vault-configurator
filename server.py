@@ -16,6 +16,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # default, or wherever VAULT_ARCHIVE points (Docker mounts it at /archive)
 ROOT = os.path.abspath(os.environ.get("VAULT_ARCHIVE") or os.path.dirname(HERE))
 sys.path.insert(0, HERE)
+# before numpy loads: our matrix products are tiny, and OpenBLAS's default pool busy-spins every core for
+# no speed-up (same wall time, ~6x the CPU, all of it fan noise)
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 import assets_bootstrap  # noqa: E402
 import version  # noqa: E402
 import catalog  # noqa: E402
@@ -28,8 +31,9 @@ INDEX = catalog.Index(ROOT)
 BUILD = version.build_id(HERE)
 SITE = catalog.load_site_data(os.path.join(HERE, "site_print_data.json"))
 STATS = mesh.StatsCache(ROOT, os.path.join(HERE, "cache", "stats.json"))
-LOCK = threading.Lock()
 BUSY = threading.Semaphore(0)  # counts running user requests; the precache thread yields while any run
+LAST_USE = [0.0]  # monotonic time the last user request finished
+IDLE_S = 2.0  # the warm-up resumes only after this long without user requests
 
 
 def archive_rel(rel):
@@ -38,16 +42,25 @@ def archive_rel(rel):
     return os.path.normpath(rel.replace("\\", "/"))
 
 
+def user_begin():
+    BUSY.release()
+
+
+def user_end():
+    LAST_USE[0] = time.monotonic()
+    BUSY.acquire(blocking=False)
+
+
 def busy():
-    return BUSY._value > 0  # ponytail: peeking at the counter is enough for a yield hint
-PROGRESS = {"msg": "", "done": 0, "total": 0}
+    # ponytail: peeking at the counter is enough for a yield hint
+    return BUSY._value > 0 or time.monotonic() - LAST_USE[0] < IDLE_S
+PROGRESS = {"msg": "", "done": 0, "total": 0, "finished": False}
 # printable volumes from USSA's printer-fit table, named when a part fits none of the user's printers
 BIGGER = {"Bambu Lab H2S": (340, 320, 340), "Bambu Lab A2L": (330, 320, 325)}
 
 
 def stats_fn(rel):
-    with LOCK:
-        return STATS.get(rel)
+    return STATS.get(rel)
 
 
 def thumb(rel):
@@ -55,31 +68,37 @@ def thumb(rel):
     cache = os.path.join(HERE, "cache", "thumbs", re.sub(r"[^A-Za-z0-9]+", "_", rel) + ".png")
     if os.path.exists(cache):
         return cache
-    with LOCK:  # the warm-up and a page request may ask for the same picture at once
-        if not os.path.exists(cache):
-            os.makedirs(os.path.dirname(cache), exist_ok=True)
-            png = mesh.thumb_png(mesh.read_stl(os.path.join(ROOT, rel)))
-            with open(cache + ".tmp", "wb") as f:
-                f.write(png)
-            os.replace(cache + ".tmp", cache)
+    os.makedirs(os.path.dirname(cache), exist_ok=True)
+    png = mesh.thumb_png(mesh.read_stl(os.path.join(ROOT, rel)))
+    tmp = f"{cache}.{threading.get_ident()}.tmp"  # the warm-up and a page request may render the same picture at once
+    with open(tmp, "wb") as f:
+        f.write(png)
+    os.replace(tmp, cache)
     return cache
 
 
 def precache():
     """Measure and picture every archive part in the background, so nothing waits on first view
-    (also hydrates Google Drive). Yields to requests; the cache folder keeps it across restarts."""
+    (also hydrates Google Drive). Runs at the lowest CPU priority, only while the page is idle;
+    the cache folder keeps it across restarts."""
+    if sys.platform.startswith("linux"):  # Linux nice is per thread: lower this one only
+        try:
+            os.setpriority(os.PRIO_PROCESS, threading.get_native_id(), 19)
+        except OSError:
+            pass
     files = [f[2] for f in INDEX.files]
     PROGRESS["total"] = len(files)
     for i, rel in enumerate(files):
         PROGRESS["done"] = i
         while busy():
-            time.sleep(0.1)
+            time.sleep(0.2)
         try:
             stats_fn(rel)
             thumb(rel)
         except Exception as e:  # keep going; the file is retried on demand
             print("precache skip", rel, e)
     PROGRESS["done"] = len(files)
+    PROGRESS["finished"] = True
 
 
 def settings_of(body):
@@ -192,7 +211,7 @@ EXPORT = {"running": False, "percent": 0, "msg": "", "result": None, "error": No
 
 def run_export(body, test):
     """Background export; the UI polls /api/export_status for percent + message."""
-    BUSY.release()
+    user_begin()
     t = time.time()
     try:
         bom, s = compute_bom(body)
@@ -217,7 +236,7 @@ def run_export(body, test):
         EXPORT.update({"error": f"{type(e).__name__}: {e}"})
     finally:
         EXPORT["running"] = False
-        BUSY.acquire(blocking=False)
+        user_end()
 
 
 def spoolman(url):
@@ -261,11 +280,11 @@ class Handler(SimpleHTTPRequestHandler):
         rel = archive_rel(rel)
         if rel.startswith("..") or not any(r == rel for _, _, r in INDEX.files):
             return self.send_json({"error": "unknown part"}, 404)
-        BUSY.release()
+        user_begin()
         try:
             cache = thumb(rel)
         finally:
-            BUSY.acquire(blocking=False)
+            user_end()
         with open(cache, "rb") as f:
             data = f.read()
         try:
@@ -339,7 +358,7 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception as e:
                 return self.send_json({"error": f"{type(e).__name__}: {e}"}, 400)
         body = json.loads(self.rfile.read(n) or b"{}")
-        BUSY.release()
+        user_begin()
         try:
             if self.path == "/api/bom":
                 bom, s = compute_bom(body)
@@ -361,7 +380,7 @@ class Handler(SimpleHTTPRequestHandler):
             traceback.print_exc()
             return self.send_json({"error": f"{type(e).__name__}: {e}"}, 500)
         finally:
-            BUSY.acquire(blocking=False)
+            user_end()
         return self.send_json({"error": "not found"}, 404)
 
 
