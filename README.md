@@ -65,6 +65,12 @@ Opens as a project in Bambu Studio, OrcaSlicer and Anycubic Slicer Next:
 
 ## Run
 
+The console opens in **Simplified Chinese** by default. Use **English / 中文** in the top-right
+corner to switch instantly; the browser remembers the choice independently of your saved build.
+Switching keeps your current inputs, help, plate previews and running jobs. Original part filenames,
+printer models, external preset names and exported files retain their original names and format.
+The project page and images from the designer's manuals are unchanged.
+
 You need the VAULT archive you bought: the folder with `01. DRAWERS`, `02. SUSTAINERS`,
 `03. MODIFICATIONS` and the PDF manuals. It is read in place and never copied. At first start the help
 pages are extracted from your PDFs and the render sheets fetched from ussadesign.com.
@@ -107,6 +113,8 @@ and the limit. USSA's own printer check on the VAULT page gives the same answer 
 
 ## Tests
 
+- `node --test tests/test_i18n.cjs` checks language defaults, translated messages and preservation of
+  technical parameters and unknown errors. Requires Node.js for this check only; no archive needed.
 - `tests/test_stack_parts.py` composes every layout × height × option (18,620 stacks) and fails if any
   part does not resolve to an archive file; it also lists which files no stack reaches (only
   alternative lengths and duplicates).
@@ -116,7 +124,7 @@ and the limit. USSA's own printer check on the VAULT page gives the same answer 
 - `deploy/smoke_test.py <url>` checks a running instance end to end (used after each NAS update).
 - Each module has a self-check: `python -X utf8 {catalog,mesh,plates,presets,assets_bootstrap}.py`.
 
-The tests need the archive: set `VAULT_ARCHIVE` to its folder (a network share works).
+The Python integration tests need the archive: set `VAULT_ARCHIVE` to its folder (a network share works).
 
 ## Files
 
@@ -126,6 +134,11 @@ The tests need the archive: set `VAULT_ARCHIVE` to its folder (a network share w
 - `presets.py` – slicer presets, per-object overrides, project config
 - `assets_bootstrap.py` – help pages from the owner's PDFs, render sheets from the site
 - `server.py` + `index.html` – the app; `site_print_data.json` – the designer's print-time sheet
+- `i18n.js` – presentation-only language binding; `i18n-ui.js` and `i18n-help.js` – Chinese dictionaries
+  keyed by the English source text, with anchored templates for dynamic messages. Element helpers
+  and `VaultI18n.setText` bind translatable text; `raw` protects external names and user content.
+  Language uses the separate `vault-configurator-language` browser key (`zh-CN` or `en`); API values
+  and saved build formats do not change. Unknown external errors are shown verbatim.
 - `Start VAULT (*)` + `start.sh` – one-click starters (uv, archive folder picker)
 - `deploy/compose.yaml` – NAS stack; `scripts/media/shoot.py` – refreshes the screenshots above
 
