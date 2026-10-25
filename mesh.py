@@ -37,12 +37,18 @@ def mesh_volume(tri):
     return float(np.einsum("ij,ij->i", tri[:, 0], np.cross(tri[:, 1], tri[:, 2])).sum() / 6.0)
 
 
-def unique_rows(p):
-    """np.unique(p, axis=0) for an (n, 2) array: the same rows in the same order, without its slow structured sort."""
-    s = p[np.lexsort((p[:, 1], p[:, 0]))]
+def unique_rows(p, return_inverse=False):
+    """np.unique(p, axis=0) for an (n, k) array: the same rows in the same order (and the same inverse),
+    without its slow structured sort."""
+    o = np.lexsort(p.T[::-1])
+    s = p[o]
     keep = np.ones(len(s), bool)
     keep[1:] = (s[1:] != s[:-1]).any(1)
-    return s[keep]
+    if not return_inverse:
+        return s[keep]
+    inv = np.empty(len(p), np.intp)
+    inv[o] = np.cumsum(keep) - 1
+    return s[keep], inv
 
 
 def best_xy_angle(points):
@@ -216,7 +222,7 @@ RELS = (
 def _mesh_xml(tri):
     """Deduplicate vertices and emit <mesh> XML. C-level % formatting keeps this fast."""
     flat = tri.reshape(-1, 3)
-    verts, inv = np.unique(np.round(flat, 3), axis=0, return_inverse=True)
+    verts, inv = unique_rows(np.round(flat, 3), return_inverse=True)
     inv = inv.reshape(-1, 3)
     v_xml = ('<vertex x="%.3f" y="%.3f" z="%.3f"/>\n' * len(verts)) % tuple(verts.ravel())
     t_xml = ('<triangle v1="%d" v2="%d" v3="%d"/>\n' * len(inv)) % tuple(inv.ravel())
