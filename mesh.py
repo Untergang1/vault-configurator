@@ -220,11 +220,13 @@ RELS = (
 
 
 def _mesh_xml(tri):
-    """Deduplicate vertices and emit <mesh> XML. C-level % formatting keeps this fast."""
+    """Deduplicate vertices and emit <mesh> XML. C-level % formatting keeps this fast.
+    Coordinates keep 1e-6 mm: CAD STLs carry sub-micron triangles, and welding at 1e-3 mm
+    collapses thousands of them into degenerate faces that the slicer reports as non-manifold edges."""
     flat = tri.reshape(-1, 3)
-    verts, inv = unique_rows(np.round(flat, 3), return_inverse=True)
+    verts, inv = unique_rows(np.round(flat, 6), return_inverse=True)
     inv = inv.reshape(-1, 3)
-    v_xml = ('<vertex x="%.3f" y="%.3f" z="%.3f"/>\n' * len(verts)) % tuple(verts.ravel())
+    v_xml = ('<vertex x="%.6f" y="%.6f" z="%.6f"/>\n' * len(verts)) % tuple(verts.ravel())
     t_xml = ('<triangle v1="%d" v2="%d" v3="%d"/>\n' * len(inv)) % tuple(inv.ravel())
     return f"<mesh><vertices>\n{v_xml}</vertices><triangles>\n{t_xml}</triangles></mesh>"
 
