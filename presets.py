@@ -3,6 +3,8 @@ build a 3MF `project_settings.config` from them.
 
 A preset JSON stores only the keys it changes and `inherits` its parent; the chain ends in a
 system preset whose `compatible_printers` names the printer and nozzle ("Bambu Lab H2C 0.4 nozzle").
+System presets also `include` template presets (Bambu keeps every machine G-code in one); those
+apply after the parent chain and before the preset's own keys.
 A project config is the flattened machine + process presets plus every filament preset's vectors
 concatenated in slot order (that is how Bambu Studio writes its own project files).
 """
@@ -33,7 +35,7 @@ KINDS = ("process", "filament", "machine")
 # bookkeeping keys that are not print settings
 META = {"name", "inherits", "from", "type", "version", "setting_id", "instantiation", "description", "compatible_printers",
         "compatible_printers_condition", "print_settings_id", "is_custom_defined", "updated_time", "filament_settings_id",
-        "printer_settings_id", "base_id", "filament_id", "setting_id"}
+        "printer_settings_id", "base_id", "filament_id", "include"}
 # project-level keys we do not copy per object
 SKIP = META | {"print_extruder_id", "print_extruder_variant", "printer_model", "printer_variant"}
 
@@ -71,10 +73,17 @@ def chain(name, all_presets):
     return [all_presets[n] for n in seen]
 
 
-def flatten(name, all_presets):
-    merged = {}
-    for p in reversed(chain(name, all_presets)):
-        merged.update({k: v for k, v in p.items() if not k.startswith("_")})
+def flatten(name, all_presets, _seen=()):
+    """All keys of a preset: parent chain, then included templates, then its own (each part flattened the same way)."""
+    if not name or name not in all_presets or name in _seen:
+        return {}
+    p, seen = all_presets[name], (*_seen, name)
+    merged = flatten(p.get("inherits"), all_presets, seen)
+    inc = p.get("include") or []
+    for t in [inc] if isinstance(inc, str) else inc:
+        merged.update(flatten(t, all_presets, seen))
+    merged.update({k: v for k, v in p.items() if not k.startswith("_")})
+    merged.pop("include", None)
     return merged
 
 

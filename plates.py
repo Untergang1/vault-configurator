@@ -282,7 +282,7 @@ def plan(parts, settings, stats_fn):
             unplaceable.append({"name": line["name"], "size": st["size"], "qty": int(line["qty"]), "group": line["group"]})
             continue
         for _ in range(int(line["qty"])):
-            items.append({"part": line["name"], "file": line["file"], "group": line["group"], "role": line["role"], "kind": line.get("kind", ""),
+            items.append({"part": line["name"], "file": line["file"], "group": line["group"], "role": line["role"], "kind": line.get("kind", ""), "supports": bool(line.get("supports")),
                           "slot": int(s["roles"].get(line["role"], 0)), "w": st["size"][0], "d": st["size"][1], "h": st["size"][2],
                           "grams": g, "seconds": sec, "angles": angles})
     items, dropped = combine_braces(items, printers, edge, stats_fn)
@@ -346,7 +346,7 @@ def plan(parts, settings, stats_fn):
                         pk.place_centred(it, int(fits([it["w"], it["d"], it["h"]], p, edge) or 0))
                     packers.append(pk)
             for pk in packers:
-                plates.append({"printer": p["id"], "group": key[0], "slots": sorted({i["slot"] for i in pk.items}), "items": expand(pk.items), "fill": round(pk.fill(), 2),
+                plates.append({"printer": p["id"], "group": key[0], "slots": sorted({i["slot"] for i in pk.items}), "items": centre(expand(pk.items), p["bed"]), "fill": round(pk.fill(), 2),
                                **({"diagonal": True} if getattr(pk, "diagonal", False) else {})})
     for n, pl in enumerate(plates):
         pl["name"] = plate_name(n + 1, pl, s)
@@ -357,6 +357,20 @@ def plan(parts, settings, stats_fn):
     placed = sum(len(pl["items"]) for pl in plates)
     return {"plates": plates, "unplaceable": unplaceable, "load": load, "pieces": pieces, "placed": placed,
             "missing": pieces - placed}  # placed + unplaceable quantities must add up to the BOM; anything else is a bug
+
+
+def centre(items, bed):
+    """Shift a plate's parts so their joint footprint sits in the middle of the bed (the packer fills from
+    the front-left corner; the bed's edge is cooler and less flat, and a brim there would run off it)."""
+    xs, ys = [], []
+    for it in items:
+        a = math.radians(it["rot"])
+        c, s = math.cos(a), math.sin(a)
+        for u, v in ((0, 0), (it["w"], 0), (0, it["d"]), (it["w"], it["d"])):
+            xs.append(it["x"] + u * c - v * s)
+            ys.append(it["y"] + u * s + v * c)
+    dx, dy = (bed[0] - max(xs) - min(xs)) / 2, (bed[1] - max(ys) - min(ys)) / 2
+    return [{**it, "x": round(it["x"] + dx, 2), "y": round(it["y"] + dy, 2)} for it in items]
 
 
 def plate_name(n, plate, s):
@@ -392,7 +406,7 @@ def export(plan_result, settings, out_dir, root, stats_fn, stack_name="vault", s
     s = {**DEFAULT_SETTINGS, **settings}
     os.makedirs(out_dir, exist_ok=True)
     written = []
-    total = sum(len({(it["file"], it["role"], preset_for(s, p, it)) for pl in plan_result["plates"] if pl["printer"] == p["id"] for it in pl["items"]}) for p in s["printers"]) + len({pl["printer"] for pl in plan_result["plates"]})
+    total = sum(len({(it["file"], it["role"], preset_for(s, p, it), it.get("supports", False)) for pl in plan_result["plates"] if pl["printer"] == p["id"] for it in pl["items"]}) for p in s["printers"]) + len({pl["printer"] for pl in plan_result["plates"]})
     done = 0
     for p in s["printers"]:
         mine = [pl for pl in plan_result["plates"] if pl["printer"] == p["id"]]
@@ -407,11 +421,13 @@ def export(plan_result, settings, out_dir, root, stats_fn, stack_name="vault", s
             items = []
             for it in pl["items"]:
                 preset = preset_for(s, p, it)
-                key = (it["file"], it["role"], preset)
+                key = (it["file"], it["role"], preset, it.get("supports", False))
                 if key not in index:
                     progress(100 * done / total, f"{p['name']}: reading {it['part']} ({done + 1}/{total})")
                     index[key] = len(objects)
                     cfg = presets_mod.overrides(p.get("slicer", ""), preset, p.get("preset", ""), allp) if allp else {}
+                    if it.get("supports"):
+                        cfg["enable_support"] = "1"
                     objects.append({"name": it["part"] + (f" ({preset})" if preset and preset != p.get("preset") else ""),
                                     "mesh": mesh.load_aligned(root, it["file"], stats_fn(it["file"])),
                                     "extruder": int(s["roles"].get(it["role"], 0)) + 1, "config": cfg})
@@ -511,6 +527,8 @@ if __name__ == "__main__":  # self-check on synthetic parts
     for p in r2["plates"]:
         for it in p["items"]:
             assert it["x"] >= 0 and it["y"] >= 0
+    one = plan([{"name": "A", "file": "a", "qty": 1, "role": "main", "group": "g"}], {"mode": "kobrax"}, lambda f: stats[f])["plates"][0]["items"][0]
+    assert (one["x"], one["y"]) == (80, 105), one  # a lone part sits in the middle of the bed
     # MaxRects: 25 parts of 50×50 on a 260 bed with 6 mm gap -> 4 per row/col = 16 per plate -> 2 plates
     many = [{"name": "Q", "file": "q", "qty": 25, "role": "main", "group": "g"}]
     r4 = plan(many, {"mode": "kobrax"}, lambda f: {"size": [50, 50, 10], "volume_cm3": 10, "area_cm2": 100})

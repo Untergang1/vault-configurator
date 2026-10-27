@@ -51,8 +51,9 @@ Printers picked from a list (every Bambu Lab model, the H2D/H2C/X2D once per noz
 Anycubic, Elegoo, Qidi and others) or typed in by bed size (bed, Z, "no tall parts" for a bed-slinger),
 filaments as colour slots (optionally from your Spoolman spools), what prints in which colour, then export: one 3MF project per printer with named
 plates, one named object per piece, printer, process preset and filaments with your colours.
-Every plate is one colour; parts are packed densely, oversize parts go across the diagonal, support
-braces stand against their module. Optionally tune a process preset per part group with test plates.
+Every plate is one colour; parts are packed densely and the packed group is centred on the bed (in the
+nozzle's reach), oversize parts go across the diagonal, support braces stand against their module, and
+parts the designer marks "Turn On Supports" get supports enabled on that object. Optionally tune a process preset per part group with test plates.
 
 ![Colours and filaments](docs/media/colours.jpg)
 ![Plates per printer](docs/media/export.jpg)

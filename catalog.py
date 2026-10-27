@@ -75,7 +75,7 @@ class Bom:
         self.warnings = []
 
     # ---------------------------------------------------------------- helpers
-    def add(self, group, name, hint="", qty=1, role=MAIN, note="", site_key=None, file=None):
+    def add(self, group, name, hint="", qty=1, role=MAIN, note="", site_key=None, file=None, supports=False):
         if qty <= 0:
             return
         rel = file or self.index.find(name, hint)
@@ -89,7 +89,7 @@ class Bom:
         site = self.site.get(site_key) if site_key else None
         self.lines.append({
             "id": f"p{len(self.lines) + 1}", "group": group, "name": name, "file": rel, "qty": qty,
-            "role": role, "note": note,
+            "role": role, "note": note, "supports": supports,  # the designer says: print with supports on
             "site_seconds": site["seconds"] if site and site["seconds"] is not None else None,
             "site_grams": site["grams"] if site and site["grams"] is not None else None,
         })
@@ -152,15 +152,15 @@ class Bom:
                     self.add(g, f"x{depth} Runner Slide XL", "xl runners", runners, MAIN, note=runner_note, site_key=f"Rail 1:All:{depth}:")
                 else:
                     self.add(g, f"{f}{depth} Box {fh}F", "drawers boxes", 1, MAIN, site_key=f"Drawer box:{f}:{depth}:{fh}")
-                    self.add(g, f"{f}{fh}F (Turn On Supports)", "drawers facades", 1, MAIN, note="Print with supports on.", site_key=f"Drawer facade:{f}::{fh}")
+                    self.add(g, f"{f}{fh}F (Turn On Supports)", "drawers facades", 1, MAIN, note="Print with supports on.", supports=True, site_key=f"Drawer facade:{f}::{fh}")
                     self.add(g, f"x{depth} Runner Guide", "universal runners", runners, MAIN, note=runner_note, site_key=f"Rail 2:All:{depth}:")
                     self.add(g, f"x{depth} Runner Slide", "universal runners", runners, MAIN, note=runner_note, site_key=f"Rail 1:All:{depth}:")
                 self.add(g, "Runner Stopper", "runners", runners, ACCENT, note="One per runner slide.")
                 if key == "hidden":
-                    self.add(g, "Hidden Key (Turn On Supports)", "drawers universal", 1, DARK, note="Supports on.", site_key="Drawer lock:All::")
-                    self.add(g, "Hidden Key Part 2 (Turn on Supports)", "drawers universal", 1, DARK, note="Supports on.")
+                    self.add(g, "Hidden Key (Turn On Supports)", "drawers universal", 1, DARK, note="Supports on.", supports=True, site_key="Drawer lock:All::")
+                    self.add(g, "Hidden Key Part 2 (Turn on Supports)", "drawers universal", 1, DARK, note="Supports on.", supports=True)
                 elif key != "none":
-                    self.add(g, "Key (Turn On Supports)", "drawers universal", 1, DARK, note="Supports on.", site_key="Drawer lock:All::")
+                    self.add(g, "Key (Turn On Supports)", "drawers universal", 1, DARK, note="Supports on.", supports=True, site_key="Drawer lock:All::")
                     self.add(g, "Key Cap", "drawers universal", 1, MAIN, site_key="Lock cap:All::")
                 self.add(g, "Springs", "drawers universal", 1, ACCENT, note="File holds both springs for one facade.")
                 self.add(g, "Facade Cap", "drawers universal", 1, MAIN)
@@ -280,7 +280,7 @@ class Bom:
         name = {"grid": "Grid Roof", "table": "Table Roof", "bowl": "Bowl Roof", "undertable": "Under Table Mount Roof"}[t]
         self.add(g, f"{f}{depth} {name}", "drawers roofs", 1, MAIN)
         if t == "grid" and r.get("topHandle", True):
-            self.add(g, "Top Handle (Turn On Supports)", "drawers universal", 1, DARK, note="Supports on.")
+            self.add(g, "Top Handle (Turn On Supports)", "drawers universal", 1, DARK, note="Supports on.", supports=True)
             self.hw("M6 x 50 mm countersunk bolt", 2, "roof handle")
 
     # -------------------------------------------------------------------- mods
